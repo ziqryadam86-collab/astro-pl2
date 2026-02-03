@@ -1,8 +1,8 @@
 name: Update Astro Token
 on:
   schedule:
-    - cron: '*/5 * * * *' # Jalan setiap 5 minit
-  workflow_dispatch: # Boleh jalan manual
+    - cron: '*/5 * * * *' # Robot bangun setiap 5 minit
+  workflow_dispatch: # Suis untuk jalan manual
 
 jobs:
   update-link:
@@ -12,11 +12,30 @@ jobs:
 
       - name: Fetch Astro Link
         run: |
-          # Robot akan buat kerja PHP tadi guna shell script yang lebih laju
-          URL=$(curl -s "https://www.kds.tw/tv/sports-tv-live-streaming/astro-pl-2/" | grep -oP 'https?://[^\s"\x27]*\.m3u8[^\s"\x27]*' | head -n 1)
+          # Ambil data dari website sumber
+          SOURCE_DATA=$(curl -sL "https://www.kds.tw/tv/sports-tv-live-streaming/astro-pl-2/")
+          
+          # Cuba cari link m3u8 (Cara 1 & Cara 2 gabung)
+          RAW_URL=$(echo "$SOURCE_DATA" | grep -oE 'https?://[^"]+\.m3u8[^"]*' | head -n 1)
+          
+          # Jika gagal cara pertama, cuba cari link yang ada perkataan 'token'
+          if [ -z "$RAW_URL" ]; then
+            RAW_URL=$(echo "$SOURCE_DATA" | grep -oE 'https?://[^ ]+astro[^ ]+m3u8[^ ]*' | head -n 1 | sed 's/[\\"]//g')
+          fi
+
+          # Bina fail m3u8
           echo "#EXTM3U" > astro.m3u8
-          echo "#EXT-X-STREAM-INF:BANDWIDTH=1280000" >> astro.m3u8
-          echo $URL >> astro.m3u8
+          echo "#EXT-X-STREAM-INF:BANDWIDTH=1280000,RESOLUTION=1280x720" >> astro.m3u8
+          
+          # Masukkan link jika dijumpai, jika tidak masukkan mesej ralat
+          if [ -z "$RAW_URL" ]; then
+            echo "ERROR_NO_LINK_FOUND" >> astro.m3u8
+          else
+            echo "$RAW_URL" >> astro.m3u8
+          fi
+          
+          echo "Hasil fail astro.m3u8:"
+          cat astro.m3u8
 
       - name: Commit and Push
         run: |
