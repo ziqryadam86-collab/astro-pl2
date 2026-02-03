@@ -1,33 +1,42 @@
 <?php
-// 1. Ambil data dari website sumber (Astro PL 2)
+// Senarai User-Agent untuk elak kena block
+$ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+
 $url = "https://www.kds.tw/tv/sports-tv-live-streaming/astro-pl-2/";
 $ch = curl_init($url);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-curl_setopt($ch, CURLOPT_USERAGENT, "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1");
+curl_setopt($ch, CURLOPT_USERAGENT, $ua);
+curl_setopt($ch, CURLOPT_TIMEOUT, 15);
 $html = curl_exec($ch);
 curl_close($ch);
 
-// 2. Cari link m3u8 yang sah
+// Cari link m3u8 menggunakan Regex
 preg_match('/https?:\/\/[^"\']+\.m3u8[^"\']*/', $html, $matches);
 $live_link = isset($matches[0]) ? stripslashes($matches[0]) : "";
 
-// 3. Bina fail mengikut format bitrate anda
-$m3u8_content = "#EXTM3U\n#EXT-X-INDEPENDENT-SEGMENTS\n";
+// Bina fail M3U8
+$m3u8 = "#EXTM3U\n#EXT-X-INDEPENDENT-SEGMENTS\n";
 
 if (!empty($live_link) && strpos($live_link, 'http') !== false) {
-    // Template kualiti yang anda minta (240p ke 1080p)
-    $qualities = ["546239,RESOLUTION=426x240", "1568726,RESOLUTION=854x480", "4370178,RESOLUTION=1280x720", "7171631,RESOLUTION=1920x1080"];
-    foreach ($qualities as $q) {
-        $m3u8_content .= "#EXT-X-STREAM-INF:BANDWIDTH=" . $q . ",FRAME-RATE=60\n" . $live_link . "\n";
+    // Format Bitrate yang anda mahu
+    $bitrates = [
+        "546239,RESOLUTION=426x240",
+        "1568726,RESOLUTION=854x480",
+        "4370178,RESOLUTION=1280x720",
+        "7171631,RESOLUTION=1920x1080"
+    ];
+    foreach ($bitrates as $b) {
+        $m3u8 .= "#EXT-X-STREAM-INF:BANDWIDTH=" . $b . ",FRAME-RATE=60\n" . $live_link . "\n";
     }
-    echo "BERJAYA: Link dijumpai!";
+    echo "BERJAYA: Jumpa link!";
 } else {
-    // LINK BACKUP (Supaya fail tak kosong kalau website KDS sekat robot)
-    $m3u8_content .= "#EXT-X-STREAM-INF:BANDWIDTH=1280000,RESOLUTION=1280x720\nhttps://tglmp.com/live/pl2.m3u8\n";
-    echo "GUNA BACKUP: Website asal disekat.";
+    // JIKA GAGAL, GUNA LINK BACKUP (Penting!)
+    $backup = "https://tglmp.com/live/pl2.m3u8";
+    $m3u8 .= "#EXT-X-STREAM-INF:BANDWIDTH=1280000,RESOLUTION=1280x720\n" . $backup . "\n";
+    echo "GUNA BACKUP: Website asal sorok link.";
 }
 
-file_put_contents("astro.m3u8", $m3u8_content);
+file_put_contents("astro.m3u8", $m3u8);
 ?>
