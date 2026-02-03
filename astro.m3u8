@@ -1,4 +1,3 @@
 #EXTM3U
-#EXTINF:-1 tvg-id="AstroPL2" tvg-name="Astro Premier League 2" group-title="SPORTS",Astro Premier League 2
-#EXTVLCOPT:http-user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
-https://tglmp.com/live/pl2.m3u8|User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36
+#EXTINF:-1,Astro Premier League 2
+https://stream.tglmp.com/hls/pl2.m3u8
