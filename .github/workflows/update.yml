@@ -9,6 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Ambil semua history untuk elak ralat pull
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -18,15 +20,19 @@ jobs:
       - name: Run Astro Script
         run: |
           php astro.php
-          echo "Semakan hasil m3u8:"
+          echo "Hasil fail:"
           cat astro.m3u8
 
       - name: Commit and Push
         run: |
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
-          git pull --rebase origin main
+          
+          # Langkah keselamatan: Add dulu baru pull rebase
           git add astro.m3u8
-          git commit -m "Update via PHP $(date)" || exit 0
+          git pull --rebase origin main
+          
+          # Commit hanya jika ada perubahan
+          git commit -m "Auto Update: $(date)" || exit 0
           git push origin main
           
