@@ -1,0 +1,28 @@
+name: Update Astro Token
+on:
+  schedule:
+    - cron: '*/5 * * * *' # Jalan setiap 5 minit
+  workflow_dispatch: # Boleh jalan manual
+
+jobs:
+  update-link:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Fetch Astro Link
+        run: |
+          # Robot akan buat kerja PHP tadi guna shell script yang lebih laju
+          URL=$(curl -s "https://www.kds.tw/tv/sports-tv-live-streaming/astro-pl-2/" | grep -oP 'https?://[^\s"\x27]*\.m3u8[^\s"\x27]*' | head -n 1)
+          echo "#EXTM3U" > astro.m3u8
+          echo "#EXT-X-STREAM-INF:BANDWIDTH=1280000" >> astro.m3u8
+          echo $URL >> astro.m3u8
+
+      - name: Commit and Push
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add astro.m3u8
+          git commit -m "Update Astro Token $(date)" || exit 0
+          git push
+          
