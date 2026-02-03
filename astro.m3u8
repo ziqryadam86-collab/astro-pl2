@@ -1,3 +1,3 @@
 #EXTM3U
-#EXTINF:-1,Astro Premier League 2
-https://stream.tglmp.com/hls/pl2.m3u8
+#EXT-X-INDEPENDENT-SEGMENTS
+# ERROR: Link tidak dijumpai pada waktu ini. Sila semak sumber KDS.
