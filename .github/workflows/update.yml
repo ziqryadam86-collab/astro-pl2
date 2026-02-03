@@ -1,8 +1,8 @@
-name: Update Astro Token
+name: Update Astro Token PHP
 on:
   schedule:
-    - cron: '*/5 * * * *' # Robot bangun setiap 5 minit
-  workflow_dispatch: # Suis untuk jalan manual
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
 
 jobs:
   update-link:
@@ -10,31 +10,18 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Fetch Astro Link
-        run: |
-          # Ambil data dari website sumber
-          SOURCE_DATA=$(curl -sL "https://www.kds.tw/tv/sports-tv-live-streaming/astro-pl-2/")
-          
-          # Cuba cari link m3u8 (Cara 1 & Cara 2 gabung)
-          RAW_URL=$(echo "$SOURCE_DATA" | grep -oE 'https?://[^"]+\.m3u8[^"]*' | head -n 1)
-          
-          # Jika gagal cara pertama, cuba cari link yang ada perkataan 'token'
-          if [ -z "$RAW_URL" ]; then
-            RAW_URL=$(echo "$SOURCE_DATA" | grep -oE 'https?://[^ ]+astro[^ ]+m3u8[^ ]*' | head -n 1 | sed 's/[\\"]//g')
-          fi
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
 
-          # Bina fail m3u8
-          echo "#EXTM3U" > astro.m3u8
-          echo "#EXT-X-STREAM-INF:BANDWIDTH=1280000,RESOLUTION=1280x720" >> astro.m3u8
+      - name: Run Astro Script
+        run: |
+          # Robot jalankan fail php anda
+          php astro.php
           
-          # Masukkan link jika dijumpai, jika tidak masukkan mesej ralat
-          if [ -z "$RAW_URL" ]; then
-            echo "ERROR_NO_LINK_FOUND" >> astro.m3u8
-          else
-            echo "$RAW_URL" >> astro.m3u8
-          fi
-          
-          echo "Hasil fail astro.m3u8:"
+          # Semak hasil (supaya kita nampak dalam log)
+          echo "Isi fail astro.m3u8 sekarang:"
           cat astro.m3u8
 
       - name: Commit and Push
@@ -42,6 +29,6 @@ jobs:
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
           git add astro.m3u8
-          git commit -m "Update Astro Token $(date)" || exit 0
+          git commit -m "Update via PHP $(date)" || exit 0
           git push
           
