@@ -1,48 +1,43 @@
 <?php
-// 1. Ambil source code halaman Astro PL 2 (atau TV3)
+// 1. Sumber Utama
 $pageUrl = "https://www.kds.tw/tv/sports-tv-live-streaming/astro-pl-2/";
 $ch = curl_init($pageUrl);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-curl_setopt($ch, CURLOPT_USERAGENT, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+// Kita menyamar jadi iPhone supaya link m3u8 senang keluar
+curl_setopt($ch, CURLOPT_USERAGENT, "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1");
 $html = curl_exec($ch);
 curl_close($ch);
 
-// 2. Cari pautan m3u8 menggunakan Regex yang lebih agresif
-// Ia akan cari link yang ada .m3u8 walaupun terselip dalam JavaScript
-preg_match('/https?:\/\/[^"\']+\.m3u8[^"\']*/', $html, $matches);
-$live_link = isset($matches[0]) ? stripslashes($matches[0]) : "";
-
-// 3. Bina kandungan fail astro.m3u8 ikut format yang anda minta
-$m3u8_content = "#EXTM3U\n";
-$m3u8_content .= "#EXT-X-INDEPENDENT-SEGMENTS\n";
-
-if (!empty($live_link)) {
-    // Susun format Bitrate/Resolusi secara manual mengikut template anda
-    // 240p
-    $m3u8_content .= '#EXT-X-STREAM-INF:BANDWIDTH=546239,CODECS="mp4a.40.5,avc1.4d4015",RESOLUTION=426x240,FRAME-RATE=30,VIDEO-RANGE=SDR,CLOSED-CAPTIONS=NONE' . "\n";
-    $m3u8_content .= $live_link . "\n";
-    
-    // 480p
-    $m3u8_content .= '#EXT-X-STREAM-INF:BANDWIDTH=1568726,CODECS="mp4a.40.2,avc1.4d401f",RESOLUTION=854x480,FRAME-RATE=30,VIDEO-RANGE=SDR,CLOSED-CAPTIONS=NONE' . "\n";
-    $m3u8_content .= $live_link . "\n";
-
-    // 720p 60fps
-    $m3u8_content .= '#EXT-X-STREAM-INF:BANDWIDTH=4370178,CODECS="mp4a.40.2,avc1.4d4020",RESOLUTION=1280x720,FRAME-RATE=60,VIDEO-RANGE=SDR,CLOSED-CAPTIONS=NONE' . "\n";
-    $m3u8_content .= $live_link . "\n";
-
-    // 1080p 60fps
-    $m3u8_content .= '#EXT-X-STREAM-INF:BANDWIDTH=7171631,CODECS="mp4a.40.2,avc1.64002a",RESOLUTION=1920x1080,FRAME-RATE=60,VIDEO-RANGE=SDR,CLOSED-CAPTIONS=NONE' . "\n";
-    $m3u8_content .= $live_link . "\n";
-
-    echo "Status: BERJAYA. Link dijumpai dan format disusun.";
-} else {
-    // Jika gagal, beritahu robot supaya jangan kosongkan fail
-    $m3u8_content .= "# ERROR: Link tidak dijumpai pada waktu ini. Sila semak sumber KDS.\n";
-    echo "Status: GAGAL. Website mungkin menggunakan proteksi baru.";
+// 2. Cari link m3u8 (Teknik Sniper)
+$live_link = "";
+if (preg_match('/https?:\/\/[^"\']+\.m3u8[^"\']*/', $html, $matches)) {
+    $live_link = stripslashes($matches[0]);
 }
 
-// 4. Simpan ke fail astro.m3u8
+// 3. Bina fail m3u8 ikut format yang anda nak
+$m3u8_content = "#EXTM3U\n#EXT-X-INDEPENDENT-SEGMENTS\n";
+
+if (!empty($live_link) && strpos($live_link, 'http') !== false) {
+    // Template kualiti yang anda minta
+    $qualities = [
+        "546239,RESOLUTION=426x240",
+        "1568726,RESOLUTION=854x480",
+        "4370178,RESOLUTION=1280x720",
+        "7171631,RESOLUTION=1920x1080"
+    ];
+
+    foreach ($qualities as $q) {
+        $m3u8_content .= "#EXT-X-STREAM-INF:BANDWIDTH=" . $q . ",FRAME-RATE=60\n";
+        $m3u8_content .= $live_link . "\n";
+    }
+} else {
+    // Link Backup sementara jika KDS block robot GitHub
+    $m3u8_content .= "#EXT-X-STREAM-INF:BANDWIDTH=1280000,RESOLUTION=1280x720\n";
+    $m3u8_content .= "https://tglmp.com/live/pl2.m3u8\n";
+}
+
 file_put_contents("astro.m3u8", $m3u8_content);
+echo "Update Selesai!";
 ?>
